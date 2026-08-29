@@ -10,6 +10,11 @@ Este repositório contém o projeto de modelagem estatística desenvolvido em **
 > **Contexto:** Projeto desenvolvido para a disciplina **ME623 - Análise de Regressão Linear** (IMECC / UNICAMP).
 
 ---
+## ✒️ Integrantes do Projeto
+- Gustavo Coimbra de Souza Teixeira  
+- Julia Folgueral 
+- Luiz Fernando de Oliveira Pereira  
+- Nicole de Barros Silva
 
 ## 📌 Informações do Projeto
 
@@ -20,6 +25,12 @@ Este repositório contém o projeto de modelagem estatística desenvolvido em **
   - Correção de autocorrelação serial de primeira ordem (Durbin-Watson saltando de $DW = 1.64$ para $DW = 1.98$) via aleatorização do arranjo amostral.
   - Investigação de pontos influentes via Distância de Cook e *Leverage*.
   - Avaliação de transformações matemáticas via log-verossimilhança de Box-Cox ($\lambda \approx 0.75$).
+- **Principais Pacotes Utilizados**
+  - tidyverse
+  - ggplot2
+  - MASS
+  - car
+  - moderndive
 
 ---
 
@@ -59,11 +70,12 @@ O modelo final obtido por Stepwise atingiu um $R^2$ ajustado de **0.29**, indica
 
 ---
 
-## 🔍 Diagnóstico e Robustez
+## 🔍 Diagnóstico, Robustez e Próximos Passos
 
 - **Independência dos Erros:** O agrupamento original dos vinhos por cor induzia autocorrelação residual ($DW = 1.64$); o reembaralhamento aleatório corrigiu o problema ($DW = 1.98$).
 - **Multicolinearidade:** A exclusão da `density` (VIF de $22.26$) eliminou a redundância com álcool e açúcar, estabilizando os coeficientes.
 - **Transformação de Box-Cox:** Com $\lambda \approx 0.75$ e o intervalo de 95% contendo o valor $1.0$, validou-se a manutenção da variável resposta na escala linear original, sem precisar fazer alterações mais drásticas.
+- **Melhorias** Uma análise mais robusta seria ajustar modelos de **Regressão Ordinal** (como *Cumulative Link Models*), já que a qualidade é avaliada em notas inteiras discretas ($0$ a $10$), esses modelos tratam a variável resposta respeitando sua escala intrínseca de ranking, sem assumir continuidade nem forçar espaçamento idêntico entre notas.
 
 ---
 
