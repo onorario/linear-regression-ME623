@@ -12,9 +12,9 @@ Este repositório contém o projeto de modelagem estatística desenvolvido em **
 
 ---
 
-## 📌 Destaques do Projeto
+## 📌 Informações do Projeto
 
-- **Base de Dados Robusta:** Análise de 6.497 amostras (4.898 vinhos brancos e 1.599 vinhos tintos) e 11 variáveis físico-químicas.
+- **Base de Dados:** Análise de 6.497 amostras (4.898 vinhos brancos e 1.599 vinhos tintos) e 11 variáveis físico-químicas.
 - **Seleção Automática de Variáveis:** Comparação e convergência entre os algoritmos *Backward*, *Forward* e *Stepwise* baseados no Critério de Akaike (AIC).
 - **Tratamento Metodológico Rigoroso:**
   - Diagnóstico e remoção de multicolinearidade severa na variável `density` (VIF = 22.26).
