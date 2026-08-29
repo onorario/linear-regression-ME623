@@ -27,3 +27,55 @@ Este repositório contém o projeto de modelagem estatística desenvolvido em **
 ## 🧪 Como a Química Explica a Qualidade? (Visão Geral Didática)
 
 Em vez de depender apenas do paladar subjetivo de um sommelier, a modelagem estatística busca entender **quais elementos no laboratório químico determinam se um vinho será bem avaliado**:
+
+### 1. 📈 Os Principais Impulsionadores (Efeito Positivo)
+* **Teor Alcoólico (`alcohol`):** Foi a variável mais relevante do modelo ($\beta = +0.334$). Vinhos mais alcoólicos tendem a ser mais encorpados e mais bem avaliados sensorialmente.
+* **Sulfatos (`sulphates`):** Atuam como conservantes e antioxidantes benéficos ($\beta = +0.575$), contribuindo positivamente para a conservação e aroma.
+* **Açúcar Residual e pH:** Apresentaram impactos positivos moderados na percepção de equilíbrio da bebida.
+
+### 2. 📉 Os Principais Detratores (Efeito Negativo)
+* **Acidez Volátil (`volatile.acidity`):** Forte redutor de nota ($\beta = -1.520$). Representa ácidos indesejados (como o ácido acético/vinagre), indicando falhas no controle de fermentação ou oxidação.
+* **Cloretos (`chlorides`):** Concentrações elevadas de salinidade ($\beta = -1.066$) prejudicam a experiência gustativa.
+* **Dióxido de Enxofre Total (`total.sulfur.dioxide`):** O excesso gera odores pungentes e sensação metálica.
+
+### 3. ⚖️ O Ponto de Equilíbrio (Não-Linearidade)
+A análise de resíduos parciais revelou que conservantes como o dióxido de enxofre possuem um **ponto de saturação** (comportamento parabólico): a dosagem ideal protege a bebida, mas o excesso penaliza a avaliação final.
+
+---
+
+## 📊 Principais Resultados do Modelo
+
+O modelo final obtido por Stepwise atingiu um $R^2$ ajustado de **0.29**, indicando que 29% da variação das notas é explicada diretamente pela química do vinho:
+
+| Variável | Coeficiente ($\beta$) | Erro Padrão | Estatística $t$ | $p$-valor | Impacto Sensorial |
+| :--- | :---: | :---: | :---: | :---: | :--- |
+| **Intercepto** | $+2.198$ | $0.233$ | $9.421$ | $< 0.0001$ | Base inicial |
+| **Álcool** | $+0.334$ | $0.009$ | $36.532$ | $< 0.0001$ | Encorpamento (+) |
+| **Acidez Volátil** | $-1.520$ | $0.076$ | $-20.028$ | $< 0.0001$ | Sensação avinagrada (-) |
+| **Sulfatos** | $+0.575$ | $0.074$ | $7.803$ | $< 0.0001$ | Estabilidade gustativa (+) |
+| **Cloretos** | $-1.066$ | $0.329$ | $-3.243$ | $0.0012$ | Salinidade excessiva (-) |
+| **Tipo (Branco)** | $-0.132$ | $0.043$ | $-3.034$ | $0.0024$ | Ajuste de base comparativo |
+
+> **Nota Metodológica:** O $R^2$ de 29% é realista para o setor de alimentos e bebidas, onde fatores não tabelados (safra, temperatura de serviço, idade da videira e subjetividade humana) também pesam na decisão do avaliador.
+
+---
+
+## 🔍 Diagnóstico e Robustez
+
+- **Independência dos Erros:** O agrupamento original dos vinhos por cor induzia autocorrelação residual ($DW = 1.64$); o reembaralhamento aleatório corrigiu o problema ($DW = 1.98$).
+- **Multicolinearidade:** A exclusão da `density` (VIF de $22.26$) eliminou a redundância com álcool e açúcar, estabilizando os coeficientes.
+- **Transformação de Box-Cox:** Com $\lambda \approx 0.75$ e o intervalo de 95% contendo o valor $1.0$, validou-se a manutenção da variável resposta na escala linear original.
+
+---
+
+## 🚀 Como Executar
+
+### Pré-requisitos (R)
+
+Instale os pacotes necessários no console do R:
+
+```R
+install.packages(c(
+  "tidyverse", "knitr", "kableExtra", "corrplot", 
+  "car", "lmtest", "MASS", "tseries", "bookdown"
+))
