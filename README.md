@@ -3,7 +3,6 @@ Modelagem estatística via Regressão Linear Múltipla (Stepwise) e diagnóstico
 # 🍷 Estudo da Relação entre Propriedades Físico-Químicas e Qualidade de Vinhos
 
 [![R](https://img.shields.io/badge/R-276DC3?style=flat-square&logo=r&logoColor=white)](https://www.r-project.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](LICENSE)
 [![Dataset: Wine Quality](https://img.shields.io/badge/Dataset-Wine--Quality-purple.svg?style=flat-square)](https://doi.org/10.24432/C56S3T)
 
 Este repositório contém o projeto de modelagem estatística desenvolvido em **R**, focado em investigar como compostos químicos e propriedades físicas influenciam as notas de degustação (qualidade de 0 a 10) atribuídas aos vinhos tintos e brancos do conjunto de dados *Wine Quality* (UCI / Cortez et al., 2009).
@@ -64,18 +63,7 @@ O modelo final obtido por Stepwise atingiu um $R^2$ ajustado de **0.29**, indica
 
 - **Independência dos Erros:** O agrupamento original dos vinhos por cor induzia autocorrelação residual ($DW = 1.64$); o reembaralhamento aleatório corrigiu o problema ($DW = 1.98$).
 - **Multicolinearidade:** A exclusão da `density` (VIF de $22.26$) eliminou a redundância com álcool e açúcar, estabilizando os coeficientes.
-- **Transformação de Box-Cox:** Com $\lambda \approx 0.75$ e o intervalo de 95% contendo o valor $1.0$, validou-se a manutenção da variável resposta na escala linear original.
+- **Transformação de Box-Cox:** Com $\lambda \approx 0.75$ e o intervalo de 95% contendo o valor $1.0$, validou-se a manutenção da variável resposta na escala linear original, sem precisar fazer alterações mais drásticas.
 
 ---
 
-## 🚀 Como Executar
-
-### Pré-requisitos (R)
-
-Instale os pacotes necessários no console do R:
-
-```R
-install.packages(c(
-  "tidyverse", "knitr", "kableExtra", "corrplot", 
-  "car", "lmtest", "MASS", "tseries", "bookdown"
-))
