@@ -1,0 +1,1209 @@
+---
+title: "Estudo da relação entre propriedades físico-químicas e qualidade de vinhos"
+author: 
+  - Gustavo Coimbra de Souza Teixeira RA 237599
+  - Julia Folgueral RA 277178
+  - Luiz Fernando de Oliveira Pereira RA 267356
+  - Nicole de Barros Silva RA 238935
+
+lang: pt-BR
+bibliography: referencia.bib
+
+output:
+  bookdown::pdf_document2:
+    toc: true
+    number_sections: true
+    latex_engine: xelatex
+    
+header-includes:
+  - \usepackage{float}
+  - \usepackage{indentfirst}
+  - \usepackage{caption}
+  - \setlength{\parindent}{1.25cm}
+  - \setlength{\parskip}{0pt}
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = FALSE,
+  message = FALSE,
+  warning = FALSE,
+  fig.width = 6,
+  fig.height = 5,
+  out.width = "75%",
+  fig.align = "center",
+  dpi = 300
+)
+
+options(scipen = 9999)
+```
+
+```{r, include=FALSE}
+# Pacotece necessário para gerar o PDF
+if(!require(tinytex)) install.packages("tinytex")
+library(tinytex)
+
+# Observação: caso ainda não funcione, rode a linha abaixo
+#tinytex::install_tinytex(force = TRUE)
+```
+
+```{r}
+# Pacotes Necessários
+
+if(!require(rlang)) install.packages("rlang")
+if(!require(tidyverse)) install.packages("tidyverse")
+if(!require(knitr)) install.packages("knitr")
+if(!require(corrplot)) install.packages("corrplot")
+if(!require(kableExtra)) install.packages("kableExtra")
+if(!require(tseries)) install.packages("tseries")
+if(!require(qqplotr)) install.packages("qqplotr", repos = "https://cloud.r-project.org")
+if(!require(car)) install.packages("car") # Q-Q Plot com Envelope de Confiança (Requer o pacote 'car')
+if(!require(lmtest)) install.packages("lmtest") # Teste de Autocorrelação 
+if(!require(MASS)) install.packages("MASS") # Transformação de Box-Cox
+#tinytex::parse_install("descritiva_nicole.log")
+```
+
+\newpage
+
+# Introdução {#sec-intro}
+
+<!-- sua introdução aqui -->
+
+<!-- O seu texto deve apresentar o assunto, motivar e explicar ao leitor o objetivo.-->
+
+<!-- O objetivo, a(s) pergunta(s) específica(s) que você quer responder devem estar claras na introdução, e, lá na conclusão, você deve retomar o argumento e mostrar como resolveu o problema. -->
+
+<!-- Finalize com um parágrafo explicando o que está por vir nas próximas seções do relatório (muito brevemente), desta forma, muitas vezes a introdução é a última parte que escrevemos, pois deve motivar e dar um resumo rápido do que está por vir --> 
+
+<!-- Utilize cross-reference para mencionar as seções no texto, por exemplo: -->
+<!--  Na Seção \@ref(sec-banco), ... -->
+
+A qualidade dos vinhos é um fator de grande importância para produtores e consumidores, pois está diretamente relacionada à aceitação do produto e ao seu valor comercial. Embora a avaliação da qualidade seja tradicionalmente realizada por meio de análises sensoriais, características físico-químicas dos vinhos também podem fornecer informações relevantes sobre os fatores associados a uma melhor avaliação. Nesse contexto, técnicas estatísticas podem ser utilizadas para investigar a relação entre essas características e a qualidade atribuída aos vinhos. 
+
+O presente estudo tem como objetivo principal investigar quais propriedades físico-químicas melhor explicam a qualidade dos vinhos e verificar se é possível prever a qualidade dos vinhos a partir dessas características. Como objetivos específicos, busca-se descrever o conjunto de dados utilizado, analisar a distribuição da variável qualidade, comparar características entre vinhos tintos e brancos e explorar as relações entre as variáveis físico-químicas e a qualidade observada.
+
+Na Seção \@ref(sec-banco) é apresentado o conjunto de dados utilizado no estudo, bem como a descrição das variáveis analisadas. Em seguida, a Seção de Análise Exploratória (Seção \@ref(sec-exploratoria)) investiga padrões, distribuições e associações entre as variáveis por meio de estatísticas descritivas e representações gráficas. As seções posteriores apresentam o ajuste de um modelo de regressão linear múltipla, a discussão dos resultados obtidos e os diagnósticos realizados para avaliação do modelo ajustado.
+
+
+# Banco de Dados {#sec-banco}
+
+```{r, include=FALSE}
+# código para carregar seu banco de dados 
+# caso sua base de dados seja grande e exceda os limites do moodle, inclua aqui um código que baixe os dados a partir de um link/google drive, certifique-se que qualquer pessoa tenha acesso/permissao para baixar dados
+
+url <- "https://raw.githubusercontent.com/juliafolgueral/me623-reg-trabfinal/main/dados_vinho.csv"
+
+dados <- read.csv(url)
+
+# Estrutura
+str(dados)
+
+# Resumo
+summary(dados)
+
+# Valores ausentes
+colSums(is.na(dados))
+
+# Transformando a variavel tipo em fator
+dados$type <- as.factor(dados$type)
+
+# Frequência dos tipos de vinho
+table(dados$type)
+prop.table(table(dados$type))
+```
+
+<!-- sua descriçao do banco de dados/variáveis aqui. Coloque a fonte/referência do banco de dados, coloque em anexo/link para codebook, caso tenha muitas variáveis, para nao deixar essa seçao muito extensa -->
+
+O conjunto de dados utilizado neste estudo reúne informações de amostras de vinhos produzidos na região norte de Portugal, contemplando as variedades tinto e branco do tradicional “Vinho Verde”. Os dados foram obtidos do conjunto *Wine Quality*, disponibilizado no UCI Machine Learning Repository e descrito por @@cortez_wine_2009. O banco é composto por características físico-químicas dos vinhos e por avaliações sensoriais utilizadas para a atribuição das notas de qualidade.
+
+Originalmente, os dados estavam divididos em duas bases, uma para vinhos tintos e outra para vinhos brancos. Para a realização das análises, as bases foram integradas em um único conjunto de dados e foi criada a variável `type`, responsável por identificar a variante do vinho (`r unique(dados$type)`). Em seguida, essa variável foi convertida para o formato fator, de modo a ser tratada como uma variável categórica nas análises. Também foi realizada a verificação da existência de valores ausentes e de inconsistências nos dados.
+
+O banco final é composto por 6497 observações e 13 variáveis. Dentre elas, 11 representam características físico-químicas dos vinhos, uma corresponde à qualidade do vinho, medida em uma escala de 0 a 10, e uma identifica o tipo de vinho. Não foram encontrados valores ausentes no conjunto de dados. Além disso, observou-se predominância de vinhos brancos na amostra, com 4898 observações, enquanto os vinhos tintos totalizam 1599 observações.
+
+A Tabela \@ref(tab:descricao-variaveis) apresenta a descrição das variáveis utilizadas no estudo. As características físico-químicas foram consideradas potenciais variáveis explicativas, enquanto a variável `quality` foi definida como variável resposta. Já a variável `type` foi incluída para distinguir vinhos tintos e brancos nas análises exploratórias.
+
+```{r descricao-variaveis}
+
+descricao_variaveis <- data.frame(
+  `Variável` = c(
+    "fixed.acidity",
+    "volatile.acidity",
+    "citric.acid",
+    "residual.sugar",
+    "chlorides",
+    "free.sulfur.dioxide",
+    "total.sulfur.dioxide",
+    "density",
+    "pH",
+    "sulphates",
+    "alcohol",
+    "quality",
+    "type"
+  ),
+  
+  `Descrição` = c(
+    "Acidez fixa do vinho",
+    "Acidez volátil do vinho",
+    "Concentração de ácido cítrico",
+    "Quantidade de açúcar residual após a fermentação",
+    "Concentração de cloretos",
+    "Dióxido de enxofre livre",
+    "Dióxido de enxofre total",
+    "Densidade do vinho",
+    "Potencial hidrogeniônico (pH)",
+    "Concentração de sulfatos",
+    "Teor alcoólico",
+    "Nota de qualidade atribuída ao vinho (0 a 10)",
+    "Tipo de vinho (Tinto ou Branco)"
+  ),
+  
+  Tipo = c(
+    rep("Explicativa", 11),
+    "Resposta",
+    "Categórica"
+  )
+)
+
+knitr::kable(
+  descricao_variaveis,
+  caption = "Descrição das variáveis",
+  booktabs = TRUE
+) %>%
+  kableExtra::kable_styling(
+    latex_options = "HOLD_position",
+    font_size = 10
+  )
+```
+
+\newpage
+
+# Análise exploratória {#sec-exploratoria}
+
+<!-- Apresente análise exploratória relevante dos dados para auxiliar nos passos iniciais da busca por um modelo.  -->
+
+<!-- * Apresente uma breve análise exploratória utilizando gráficos com o objetivo de  -->
+<!--    estudar a associação de das variáveis preditoras com a variável resposta.  -->
+
+<!-- Qualquer tabela /figura presente no relatório precisa ser introduzida e referenciada no texto. Explique ao leitor o propósito das mesmas. -->
+
+<!--    Considere tipos adequados de gráficos para cada tipo de variável e objetivos. -->
+<!--    * Podem fazer vários gráficos, para explorar, mas, no relatório, sejam suscintos, escolhendo apenas os principais. -->
+<!--    * Todos os gráficos escolhidos por você para serem incluídos no relatório devem conter legendas explicativas  -->
+<!--    (*captions*) claras e informativas, indicando o que está sendo analisado  -->
+<!--    e destacando os principais padrões/conclusões observados.  -->
+<!--    Caso não tenha nada relevante a ser comentado, não inclua no relatório. -->
+<!--    * Apresente sua análise e comente os resultados, reforçando que o objetivo  -->
+<!--    principal é estudar a associaçao de cada variável com a variável resposta.  -->
+<!--    * Com base na análise exploratória, aplique filtros e/ou reagrupe/filtre níveis de variáveis categóricas com pouquíssimas observações, etc...   -->
+
+<!-- Caso decida utilizar transformação de alguma variável, criar outra variável, padronizar, etc... Aqui é o momento de mencionar/motivar essas decisões. Se for este o caso, acrescente um parágrafo explicando as transformações que serão feitas (preprocessamento)-->
+
+<!-- Alguma variável será descartada logo de início? Justifique, se for o caso-->
+
+<!-- Algumas obs serão descartadas logo de início? Justifique, se for o caso-->
+
+<!-- Apresente as estatísticas e gráficos que ajudam a atingir o objetivo definido na introdução-->
+
+<!-- Gráficos exploratórios/univariados que você fez apenas para "limpar" os dados não precisam, necessariamente, aparecer no texto do relatório, apenas inclua gráficos que auxiliem no objetivo principal. -->
+
+
+<!-- Deixe claro qual o que será excluído, o que será criado/transformado. -->
+
+## Distribuição da qualidade
+A primeira etapa da análise exploratória consiste em investigar a distribuição da variável resposta do estudo. Assim, busca-se verificar como a qualidade dos vinhos está distribuída na amostra. A compreensão desse comportamento é importante para identificar a concentração das observações em determinadas notas e verificar a existência de possíveis assimetrias ou baixa representatividade em algumas categorias de qualidade.
+
+A Figura \@ref(fig:fig-qualidade) apresenta a distribuição das notas de qualidade atribuídas aos vinhos da amostra. Para complementar essa análise, a Tabela \@ref(tab:tab-resumo-qualidade) apresenta algumas estatísticas descritivas da variável qualidade.
+
+```{r fig-qualidade, fig.pos='H', fig.cap="Distribuição das notas de qualidade dos vinhos da amostra.", fig.align='center'}
+
+ggplot(dados,
+       aes(x = quality)) +
+  
+  geom_histogram(
+    binwidth = 1,
+    fill = "grey70",
+    color = "black",
+    linewidth = 0.4
+  ) +
+  
+  labs(
+    title = "Distribuição da Qualidade dos Vinhos",
+    x = "Qualidade",
+    y = "Frequência"
+  ) +
+  
+  scale_x_continuous(
+    breaks = seq(
+      min(dados$quality),
+      max(dados$quality),
+      by = 1
+    )
+  ) +
+  
+  theme_minimal(base_size = 10) +
+  
+  theme(
+    plot.title = element_text(
+      hjust = 0.5,
+      face = "bold",
+      size = 11
+    ),
+    axis.title = element_text(
+      face = "bold",
+      size = 10
+    ),
+    axis.text = element_text(
+      size = 9
+    ),
+    panel.grid.minor = element_blank(),
+    panel.grid.major.x = element_blank()
+  )
+```
+
+Observa-se que a distribuição das notas de qualidade está concentrada nas categorias intermediárias, com predominância das notas 5 e 6. As notas mais baixas e mais elevadas apresentam menor frequência, não sendo observadas avaliações nos valores extremos da escala. Dessa forma, a maior parte dos vinhos analisados apresenta qualidade moderada, indicando que a variável resposta não está uniformemente distribuída na amostra.
+
+```{r tab-resumo-qualidade}
+estat_qualidade <- data.frame(
+  `Estatística` = c(
+    "Mínimo",
+    "1º Quartil",
+    "Mediana",
+    "Média",
+    "3º Quartil",
+    "Máximo",
+    "Desvio-padrão"
+  ),
+  
+  Valor = c(
+    min(dados$quality),
+    quantile(dados$quality, 0.25),
+    median(dados$quality),
+    mean(dados$quality),
+    quantile(dados$quality, 0.75),
+    max(dados$quality),
+    sd(dados$quality)
+  )
+)
+
+knitr::kable(
+  estat_qualidade,
+  digits = 2,
+  booktabs = TRUE,
+  caption = "Estatísticas descritivas da variável qualidade"
+) %>%
+  kableExtra::kable_styling(
+    latex_options = "HOLD_position",
+    font_size = 10
+  )
+```
+
+Os resultados apresentados na Tabela \@ref(tab:tab-resumo-qualidade) mostram que a qualidade média dos vinhos é de aproximadamente 5,82 pontos, com mediana igual a 6. Além disso, observa-se que 50% das observações estão concentradas entre as notas 5 e 6, corroborando o padrão identificado no histograma. As notas observadas variam de 3 a 9, indicando que a amostra não contempla os valores extremos da escala original de qualidade.
+
+## Caracterização da amostra segundo o tipo de vinho
+A fim de caracterizar a amostra utilizada no estudo, verificou-se como os vinhos estão distribuídos entre as variantes tinto e branco, visto que as diferenças na composição da amostra podem influenciar os padrões observados nas etapas posteriores.
+
+A Figura \@ref(fig:fig-tipo) apresenta a distribuição das observações segundo o tipo de vinho.
+
+```{r fig-tipo, fig.pos='H', fig.cap="Distribuição das observações segundo o tipo de vinho", fig.align='center'}
+
+ggplot(dados,
+       aes(x = type,
+           fill = type)) +
+  
+  geom_bar(width = 0.7,
+           color = "black") +
+  
+  geom_text(
+    stat = "count",
+    aes(label = after_stat(count)),
+    vjust = -0.5,
+    size = 3
+  ) +
+  
+  scale_fill_manual(values = c(
+    "Red" = "#8B0000",
+    "White" = "#D9D9D9"
+  )) +
+  
+  labs(
+    x = "Tipo de vinho",
+    y = "Frequência"
+  ) +
+  
+  theme_minimal(base_size = 10) +
+  
+  theme(
+    legend.position = "none",
+    axis.title = element_text(face = "bold"),
+    panel.grid.minor = element_blank()
+  )
+
+```
+
+Como dito anteriormente na Seção \@ref(sec-banco), observa-se que a amostra é composta majoritariamente por vinhos brancos, que representam aproximadamente 75% das observações, enquanto os vinhos tintos correspondem aos 25% restantes.
+
+## Qualidade por tipo de vinho
+Após caracterizar a composição da amostra, buscou-se investigar se existem diferenças na qualidade dos vinhos de acordo com o seu tipo.
+
+A Figura \@ref(fig:fig-qualidade-tipo) apresenta a distribuição das notas de qualidade para vinhos tintos e brancos. Complementarmente, a Tabela \@ref(tab:tab-qualidade-tipo) apresenta estatísticas descritivas da qualidade para cada grupo.
+
+```{r tab-qualidade-tipo}
+dados %>%
+  group_by(type) %>%
+  summarise(
+    `Número de observações` = n(),
+    `Média` = mean(quality),
+    `Desvio-padrão` = sd(quality),
+    Mediana = median(quality)
+  ) %>%
+  mutate(
+    type = recode_factor(type,
+                  "Red" = "Tinto",
+                  "White" = "Branco")
+  ) %>%
+  rename(
+    `Tipo de vinho` = type
+  ) %>%
+  kable(
+    booktabs = TRUE,
+    digits = 2,
+    caption = "Estatísticas descritivas da qualidade segundo o tipo de vinho"
+  ) %>%
+  kableExtra::kable_styling(
+    latex_options = "HOLD_position",
+    font_size = 10
+  )
+```
+
+```{r fig-qualidade-tipo, fig.pos='H', fig.cap="Distribuição das notas de qualidade segundo o tipo de vinho.", fig.align='center'}
+ggplot(dados,
+       aes(x = type,
+           y = quality,
+           fill = type)) +
+  
+  geom_boxplot() +
+  
+  scale_fill_manual(values = c(
+    "Red" = "#8B0000",
+    "White" = "#D9D9D9"
+  )) +
+  
+  labs(
+    x = "Tipo de vinho",
+    y = "Qualidade"
+  ) +
+  
+  theme_minimal() +
+  
+  theme(
+    legend.position = "none"
+  )
+
+```
+
+Os resultados  mostram que os vinhos brancos apresentam qualidade média ligeiramente superior à dos vinhos tintos (5,88 contra 5,64). Apesar dessa diferença, ambos os grupos possuem mediana igual a 6, indicando distribuições semelhantes das notas de qualidade. 
+
+## Associação de algumas propriedades com a qualidade
+Após analisar a distribuição da qualidade e as diferenças entre os tipos de vinho, buscou-se investigar a relação entre algumas propriedades físico-químicas e a qualidade observada. Essa etapa é fundamental para identificar quais características apresentam maior potencial para explicar a variabilidade das notas atribuídas aos vinhos e, consequentemente, contribuir para a construção de um modelo.
+Inicialmente, buscou-se entender a relação entre o teor alcoólico dos vinhos e a sua qualidade.
+
+```{r fig-alcool-qualidade, fig.pos='H', fig.cap="Distribuição do teor alcoólico segundo as notas de qualidade dos vinhos.", fig.align='center'}
+
+ggplot(dados,
+       aes(x = factor(quality),
+           y = alcohol)) +
+  
+  geom_boxplot(fill = "grey70") +
+  
+  labs(
+    x = "Qualidade",
+    y = "Teor alcoólico"
+  ) +
+  
+  theme_minimal()
+```
+
+Observa-se na Figura \@ref(fig:fig-alcool-qualidade) que os vinhos classificados com maiores notas de qualidade tendem a apresentar níveis mais elevados de teor alcoólico. Apesar de a relação não ser perfeitamente crescente em todas as categorias, as maiores medianas concentram-se entre os vinhos de qualidade superior, indicando uma possível associação positiva entre teor alcoólico e qualidade.
+
+Além do teor alcoólico, investigou-se a relação entre a acidez volátil e a qualidade dos vinhos. A Figura \@ref(fig:fig-acidez-qualidade) apresenta a distribuição dessa variável segundo os níveis de qualidade observados.
+
+```{r fig-acidez-qualidade, fig.pos='H', fig.cap="Distribuição da acidez volátil segundo as notas de qualidade dos vinhos.", fig.align='center'}
+
+ggplot(dados,
+       aes(x = factor(quality),
+           y = volatile.acidity)) +
+  
+  geom_boxplot(fill = "grey70") +
+  
+  labs(
+    x = "Qualidade",
+    y = "Acidez volátil"
+  ) +
+  
+  theme_minimal()
+```
+
+Nota-se uma tendência de redução da acidez volátil à medida que a qualidade dos vinhos aumenta. As maiores medianas são observadas entre os vinhos de menor qualidade, enquanto os vinhos mais bem avaliados apresentam, em geral, menores concentrações dessa variável. Apesar da sobreposição entre as distribuições, o padrão observado sugere uma associação negativa entre acidez volátil e qualidade, indicando que níveis mais elevados dessa característica tendem a estar relacionados a avaliações menos favoráveis.
+
+Por fim, investigou-se a relação entre a concentração de sulfatos e a qualidade dos vinhos. Os sulfatos desempenham funções importantes no processo de conservação e estabilidade da bebida, podendo influenciar suas características sensoriais. A Figura \@ref(fig:fig-sulfatos-qualidade) apresenta a distribuição da concentração de sulfatos para os diferentes níveis de qualidade observados.
+
+```{r fig-sulfatos-qualidade, fig.pos='H', fig.cap="Distribuição da concentração de sulfatos segundo as notas de qualidade dos vinhos.", fig.align='center'}
+
+ggplot(dados,
+       aes(x = factor(quality),
+           y = sulphates)) +
+  
+  geom_boxplot(fill = "grey70") +
+  
+  labs(
+    x = "Qualidade",
+    y = "Sulfatos"
+  ) +
+  
+  theme_minimal()
+
+```
+
+A Figura \@ref(fig:fig-sulfatos-qualidade) não evidencia um padrão claro de variação da concentração de sulfatos em função da qualidade dos vinhos. Apesar de pequenas diferenças entre as categorias, observa-se considerável sobreposição entre as distribuições, dificultando a identificação de uma associação consistente entre essas variáveis.
+
+De maneira geral, as análises exploratórias indicam que algumas propriedades físico-químicas apresentam associação com a qualidade dos vinhos. O teor alcoólico mostrou uma tendência positiva com as notas de qualidade, enquanto a acidez volátil apresentou uma tendência negativa. Já a concentração de sulfatos não evidenciou uma associação clara com a qualidade dos vinhos.
+
+## Correlação das variáveis físico-químicas com a qualidade
+Com o objetivo de identificar quais características físico-químicas apresentam maior associação linear com a qualidade dos vinhos, foram calculados os coeficientes de correlação de Pearson entre a variável resposta `quality` e as demais variáveis numéricas do conjunto de dados. A Tabela \@ref(tab:tab-correlacoes) apresenta os resultados obtidos.
+
+```{r tab-correlacoes}
+
+# Seleção das variáveis numéricas
+dados_numericos <- dados[sapply(dados, is.numeric)]
+
+# Correlações com a qualidade
+correlacoes_quality <- data.frame(
+  Variavel = names(dados_numericos),
+  Correlacao = round(cor(dados_numericos)[, "quality"], 3)
+)
+
+# Remover a própria variável qualidade
+correlacoes_quality <- subset(
+  correlacoes_quality,
+  Variavel != "quality"
+)
+
+# Classificação da associação
+correlacoes_quality$Associacao <- ifelse(
+  correlacoes_quality$Correlacao > 0,
+  "Positiva",
+  "Negativa"
+)
+
+# Ordenar pela magnitude da correlação
+correlacoes_quality <- correlacoes_quality[
+  order(abs(correlacoes_quality$Correlacao),
+        decreasing = TRUE),
+]
+
+# Remover nomes das linhas
+rownames(correlacoes_quality) <- NULL
+
+# Traduzir nomes das variáveis
+correlacoes_quality$Variavel <- c(
+  "Álcool",
+  "Densidade",
+  "Acidez volátil",
+  "Cloretos",
+  "Ácido cítrico",
+  "Acidez fixa",
+  "Dióxido de enxofre livre",
+  "Dióxido de enxofre total",
+  "Sulfatos",
+  "Açúcar residual",
+  "pH"
+)
+
+kable(
+  correlacoes_quality,
+  booktabs = TRUE,
+  col.names = c(
+    "Variável",
+    "Correlação",
+    "Associação"
+  ),
+  caption = "Correlação das características físico-químicas com a qualidade dos vinhos"
+) %>%
+  kableExtra::kable_styling(
+    latex_options = "HOLD_position",
+    font_size = 10
+  )
+```
+
+Conforme apresentado na Tabela \@ref(tab:tab-correlacoes), o teor alcoólico foi a variável que apresentou a maior correlação com a qualidade dos vinhos, indicando que maiores concentrações de álcool tendem a estar associadas a melhores avaliações. Em contrapartida, a densidade, a acidez volátil e cloretos apresentaram correlações negativas de maior magnitude, sugerindo que valores elevados dessas características estão associados a menores notas de qualidade. As demais variáveis apresentaram correlações fracas com a qualidade, indicando que, individualmente, possuem menor capacidade explicativa. Esses resultados reforçam os padrões observados nas análises gráficas anteriores e fornecem evidências iniciais sobre quais variáveis podem ser mais relevantes na etapa de modelagem estatística.
+
+\newpage
+# Modelo Proposto
+
+
+<!-- Apresente o modelo ajustado -->
+
+```{r}
+set.seed(123)
+
+dados_embaralhados <- dados[sample(nrow(dados)), ]
+```
+
+```{r}
+mod_nulo <- lm(quality ~ 1, data = dados_embaralhados)
+mod_cheio <- lm(quality ~ fixed.acidity + volatile.acidity + residual.sugar + chlorides +
+                  free.sulfur.dioxide + total.sulfur.dioxide + pH + sulphates +
+                  alcohol + type, data = dados_embaralhados)
+```
+
+```{r, include=FALSE}
+mod_stepwise <- step(mod_nulo, scope = list(lower = mod_nulo, upper = mod_cheio), 
+                     direction = "both", trace = FALSE)
+summary(mod_stepwise)
+```
+
+O modelo final foi selecionado por meio do procedimento Stepwise, considerando simultaneamente critérios de ajuste e parcimônia.
+
+O modelo ajustado pode ser escrito como
+
+\[
+\begin{aligned}
+\widehat{\text{quality}}
+=&\ \beta_0 + \beta_1 \text{alcohol}
++ \beta_2 \text{volatile.acidity}
++ \beta_3 \text{sulphates} \\
+&+ \beta_4 \text{residual.sugar}
++ \beta_5 \text{type}
++ \beta_6 \text{free.sulfur.dioxide} \\
+&+ \beta_7 \text{total.sulfur.dioxide}
++ \beta_8 \text{chlorides}
++ \beta_9 \text{pH}
+\end{aligned}
+\]
+
+O coeficiente de determinação ajustado foi igual a `r round(summary(mod_stepwise)$adj.r.squared,3)`, indicando que aproximadamente `r round(100*summary(mod_stepwise)$adj.r.squared,1)`\% da variabilidade observada na qualidade dos vinhos é explicada pelas variáveis incluídas no modelo.
+
+
+<!-- Interprete parametros, forneça IC interessantes de acordo com os objetivos, apresente gráficos de interaçoes/estimativas se necessário -->
+## Interpretação dos coeficientes
+
+A Tabela \@ref(tab:tab-coeficientes) apresenta as estimativas dos coeficientes do modelo final. Note que todas as variáveis selecionadas pelo procedimento Stepwise (ver [Métodos automáticos de seleção de variáveis](#automaticos)) apresentaram significância estatística ao nível de 5\%.
+
+```{r}
+ic <- confint(mod_stepwise)
+```
+
+```{r tab-coeficientes}
+coeficientes <- summary(mod_stepwise)$coefficients
+
+tabela_coef <- data.frame(
+  `Variável` = rownames(coeficientes),
+  Estimativa = round(coeficientes[,1], 3),
+  `Erro padrão` = round(coeficientes[,2], 3),
+  `Estatística t` = round(coeficientes[,3], 3),
+  `Valor-p` = signif(coeficientes[,4], 3)
+)
+
+tabela_coef$`Variável` <- c(
+  "Intercepto",
+  "Álcool",
+  "Acidez volátil",
+  "Sulfatos",
+  "Açúcar residual",
+  "Tipo (Branco)",
+  "Dióxido de enxofre livre",
+  "Dióxido de enxofre total",
+  "Cloretos",
+  "pH"
+)
+
+kable(
+  tabela_coef,
+  booktabs = TRUE,
+  caption = "Coeficientes estimados para o modelo final."
+) %>%
+  kableExtra::kable_styling(
+    latex_options = "HOLD_position",
+    font_size = 10
+  )
+```
+
+Os maiores efeitos positivos sobre a qualidade dos vinhos foram observados para as variáveis *Álcool* e *Sulfatos*, enquanto *Acidez volátil* e *Cloretos* apresentaram os maiores efeitos negativos. 
+
+O teor alcoólico (`alcohol`) apresentou efeito positivo sobre a qualidade dos vinhos. Em média, um aumento de uma unidade nessa variável está associado a um aumento de `r round(coef(mod_stepwise)["alcohol"],3)` pontos na qualidade esperada do vinho.
+
+A acidez volátil (`volatile.acidity`) apresentou associação negativa com a qualidade. Mantidas as demais variáveis constantes, um aumento de uma unidade nessa característica reduz a qualidade esperada em aproximadamente `r abs(round(coef(mod_stepwise)["volatile.acidity"],3))` pontos.
+
+Os sulfatos (`sulphates`) apresentaram efeito positivo, sendo estimado um aumento médio de `r round(coef(mod_stepwise)["sulphates"],3)` pontos na qualidade para cada unidade adicional da variável.
+
+A quantidade de açúcar residual (`residual.sugar`) apresentou coeficiente estimado igual a `r round(coef(mod_stepwise)["residual.sugar"],3)`, indicando associação positiva com a qualidade média dos vinhos. Em particular, um aumento de 10 unidades nessa variável está associado a um aumento médio de `r round(10*coef(mod_stepwise)["residual.sugar"],3)` pontos na qualidade esperada.
+
+A variável indicadora do tipo de vinho (`type`) apresentou coeficiente estimado igual a `r round(coef(mod_stepwise)["typeWhite"],3)`. Assim, vinhos brancos apresentam qualidade média estimada `r abs(round(coef(mod_stepwise)["typeWhite"],3))` pontos inferior à dos vinhos tintos, quando comparados sob as mesmas condições das demais variáveis do modelo. 
+
+A concentração de dióxido de enxofre livre (`free.sulfur.dioxide`) apresentou efeito positivo sobre a qualidade. Em média, um aumento de 10 unidades nessa variável está associado a um aumento de `r round(10*coef(mod_stepwise)["free.sulfur.dioxide"],3)` pontos na qualidade esperada dos vinhos.
+
+Por outro lado, a concentração de dióxido de enxofre total (`total.sulfur.dioxide`) apresentou efeito negativo. Em média, um aumento de 100 unidades nessa variável está associado a uma redução de `r abs(round(100*coef(mod_stepwise)["total.sulfur.dioxide"],3))` pontos na qualidade esperada dos vinhos.
+
+A concentração de cloretos (`chlorides`) apresentou associação negativa com a qualidade dos vinhos. Mantidas as demais variáveis constantes, um aumento de 0,1 unidade nessa variável está associado a uma redução média de `r abs(round(0.1*coef(mod_stepwise)["chlorides"],3))` pontos na qualidade esperada.
+
+O pH apresentou coeficiente estimado igual a `r round(coef(mod_stepwise)["pH"],3)`, indicando associação positiva com a qualidade dos vinhos. Mantidas as demais variáveis constantes, um aumento de uma unidade no pH está associado a um aumento médio de `r round(coef(mod_stepwise)["pH"],3)` pontos na qualidade esperada.
+
+Embora diversos coeficientes sejam estatisticamente significativos, a magnitude dos efeitos varia substancialmente entre as covariáveis. Em particular, as variáveis `alcohol` e `volatile.acidity` apresentaram os maiores efeitos absolutos sobre a qualidade dos vinhos, sugerindo serem fatores especialmente relevantes para explicar a variação observada na resposta.
+
+
+## Intervalos de confiança
+
+Para avaliar a precisão das estimativas, foram construídos intervalos de confiança de 95\% para alguns coeficientes de interesse.
+
+O coeficiente associado ao teor alcoólico (`alcohol`) apresenta intervalo de confiança de 95\% igual a (`r round(ic["alcohol",1],3)`, `r round(ic["alcohol",2],3)`).
+
+Para a acidez volátil (`volatile.acidicity`), o intervalo de confiança de 95\% foi (`r round(ic["volatile.acidity",1],3)`, `r round(ic["volatile.acidity",2],3)`).
+
+Já para os sulfatos (`sulphates`), obteve-se intervalo de confiança de 95\% igual a (`r round(ic["sulphates",1],3)`, `r round(ic["sulphates",2],3)`).
+
+Note que nenhum desses intervalos contém o valor zero, indicando evidências de associação estatisticamente significativa entre essas variáveis e a qualidade dos vinhos.
+
+<!-- Apresente o gráfico de predito x observado. Inclua uma reta coef=1 para auxiliar na avaliaçao-->
+\newpage
+## Avaliação preditiva
+
+```{r}
+dados_plot <- data.frame(
+  observado = dados_embaralhados$quality,
+  predito = predict(mod_stepwise)
+)
+```
+
+A Figura \@ref(fig:fig-obs-pred) apresenta os valores observados em função dos valores preditos pelo modelo.
+
+```{r fig-obs-pred, fig.pos='H', fig.cap = "Valores Preditos vs Valores Observados",fig.align='center'}
+ggplot(dados_plot,
+       aes(x = predito, y = observado)) +
+  geom_point(alpha = 0.15) +
+  geom_abline(intercept = 0,
+              slope = 1,
+              linewidth = 1) +
+  labs(
+    x = "Qualidade predita",
+    y = "Qualidade observada"
+  ) +
+  theme_minimal()
+```
+
+Observa-se uma associação positiva entre os valores preditos e observados, indicando que o modelo é capaz de capturar parte da estrutura presente nos dados. Entretanto, nota-se uma concentração das previsões em torno dos valores centrais da escala de qualidade, com tendência a superestimar observações de baixa qualidade e subestimar observações de alta qualidade. Esse comportamento é consistente com o coeficiente de determinação ajustado de `r round(summary(mod_stepwise)$adj.r.squared,3)`, que sugere capacidade explicativa moderada.
+
+Além disso, como a variável resposta correspondente à qualidade do vinho é discreta, os valores observados assumem apenas um conjunto limitado de categorias. Por esse motivo, o gráfico de valores preditos versus observados não apresenta o padrão típico de uma nuvem de pontos distribuída em torno da reta de referência.
+Dessa forma, o modelo apresenta capacidade explicativa moderada, sendo mais adequado para identificar fatores associados à qualidade dos vinhos do que para realizar previsões altamente precisas.
+
+\newpage
+# Discussão
+
+<!-- Discuta os resultados do modelo tendo em vista os objetivos propostos. Relevancia/utilidade do modelo no contexto do problema -->
+
+O objetivo deste trabalho foi investigar a relação entre características físico-químicas dos vinhos e sua qualidade, por meio de um modelo de regressão linear múltipla. Os resultados obtidos indicam que, principalmente, variáveis como teor alcoólico, acidez volátil, sulfatos e concentrações de dióxido de enxofre estão associadas à qualidade dos vinhos, após o controle das demais características incluídas no modelo.
+
+Entre os fatores analisados, o teor alcoólico apresentou associação positiva com a qualidade, enquanto a acidez volátil apresentou associação negativa. Esses resultados são consistentes com o conhecimento sobre vinhos, uma vez que maiores teores alcoólicos costumam estar relacionados a vinhos mais encorpados e melhor avaliados, enquanto níveis elevados de acidez volátil podem indicar alterações indesejáveis no produto.
+
+Embora todas as variáveis selecionadas tenham apresentado significância estatística, o modelo apresentou coeficiente de determinação ajustado igual a `r round(summary(mod_stepwise)$adj.r.squared,3)`. Isso indica que uma parcela considerável da variabilidade da qualidade dos vinhos permanece não explicada pelas variáveis disponíveis na base de dados. Tal resultado era esperado, uma vez que a percepção de qualidade é influenciada por diversos fatores subjetivos e sensoriais que não foram mensurados neste estudo.
+
+A análise dos valores observados e preditos mostrou que o modelo é capaz de capturar tendências gerais dos dados, mas apresenta limitações na previsão de vinhos com qualidades extremas. Observou-se uma tendência de superestimar vinhos de baixa qualidade e subestimar vinhos de alta qualidade, comportamento típico de modelos lineares quando a capacidade preditiva é moderada.
+
+Dessa forma, o modelo proposto mostra-se mais útil como ferramenta de interpretação e identificação dos principais fatores associados à qualidade dos vinhos do que como instrumento de previsão altamente precisa. Ainda assim, os resultados obtidos fornecem informações relevantes sobre quais características físico-químicas estão mais relacionadas à qualidade do produto, contribuindo para a compreensão do problema estudado.
+
+Como sugestões de melhorias deste estudo, poderiam ser investigados modelos mais flexíveis, como regressão ordinal, uma vez que a variável qualidade é discreta e pode apresentar relações não lineares com as características físico-químicas dos vinhos.
+
+\newpage
+# Conclusão 
+
+O presente projeto teve o objetivo de investigar e quantificar o impacto das propriedades físico-químicas na percepção de qualidade dos vinhos tintos e brancos do norte de Portugal, onde as informações e os dados foram descritos por @@cortez_wine_2009. Por meio do ajuste de um modelo de regressão linear múltipla, refinado pelos métodos de seleção *Stepwise*, *Forward* e *Backward*, concluiu-se que as características químicas da bebida exercem uma influência estatisticamente significativa e mensurável sobre a sua avaliação sensorial. 
+
+Os achados químicos indicam caminhos claros para a gestão de qualidade das vinícolas. O teor alcoólico e a presença equilibrada de sulfatos consolidaram-se como os principais impulsionadores de notas mais altas, sugerindo que a maturidade correta da uva e uma estabilização adequada são caminhos seguros para a melhor avaliação do produto. Em contrapartida, as concentrações de acidez volátil e de cloretos atuaram como fortes detratores, visto que o excesso desses compostos remete a falhas de oxidação e excesso de salinidade, respectivamente. 
+
+Do ponto de vista metodológico, o modelo mostrou-se estatisticamente eficiente, mas com limitações. A identificação prévia de colinearidade com a densidade e o ajuste amostral via aleatorização (que solucionou uma grave autocorrelação serial presente nos dados originais) garantiram a confiabilidade do estimador de Mínimos Quadrados Ordinários (MQO). Além disso, embora a natureza discreta da variável resposta (notas inteiras de 0 a 10) tenha refletido em desvios formais nos testes estritos de normalidade e homocedasticidade, as análises gráficas e a tranformação de Box-Cox mostram que os resíduos estão dentro do esperado e tendem a zero.
+
+Por fim, o coeficiente de determinação obtido ($R^2$ ajustado `r round(summary(mod_stepwise)$adj.r.squared,3)`) deve ser interpretado como um selo de realismo analítico. Na avaliação de alimentos e bebidas, o paladar humano é influenciado por diversos fatores e variáveis não tabeladas pelo laboratório químico, tais como idade da videira, temperatura de serviço e o viés do próprio degustador. O foco do modelo é mapear as diretrizes químicas que os produtores devem buscar, ou evitar, para maximizar a aceitação de seus vinhos. Para desdobramentos futuros sugere-se a aplicação de modelos generalizados adequados para respostas ordinais, oferecendo uma abordagem estruturalmente alinhada à natureza categórica das notas de degustação.
+
+
+# Apêndice {-}
+
+## Métodos automáticos de seleção de variáveis {- #automaticos}
+
+Além da análise baseada em critérios estatísticos e diagnósticos do modelo, foram aplicados três métodos automáticos de seleção de variáveis: Backward Elimination, Forward Selection e Stepwise Regression. Em todos os procedimentos foi utilizado o Critério de Informação de Akaike (AIC) como medida para comparação dos modelos.
+
+Inicialmente foram definidos dois modelos de referência. O modelo nulo continha apenas o intercepto, enquanto o modelo completo incluía todas as variáveis explicativas consideradas relevantes após a análise de multicolinearidade. A variável densidade foi excluída do modelo completo devido aos elevados níveis de colinearidade observados anteriormente.
+
+No método Backward Elimination, o processo teve início com o modelo completo, removendo sucessivamente as variáveis cuja exclusão resultasse em redução do AIC. Já o Forward Selection partiu do modelo nulo, adicionando iterativamente as variáveis que proporcionavam a maior melhoria no ajuste. Por fim, o método Stepwise combinou etapas de inclusão e exclusão de variáveis ao longo do processo de seleção.
+
+Os três procedimentos selecionaram exatamente o mesmo conjunto de variáveis explicativas: álcool, acidez volátil, sulfatos, açúcar residual, tipo do vinho, dióxido de enxofre livre, dióxido de enxofre total, cloretos e pH.
+
+O modelo Stepwise apresentou coeficiente de determinação ajustado igual a `r round(summary(mod_stepwise)$adj.r.squared,3)` e erro padrão residual de `r round(summary(mod_stepwise)$sigma,3)`. A concordância entre os três métodos de seleção, indicado na Tabela  \@ref(tab:tab-selecao),  sugere estabilidade na escolha das variáveis e fornece evidências de que o conjunto selecionado representa uma estrutura consistente para explicar a qualidade dos vinhos dentro das variáveis disponíveis na base de dados.
+
+Dessa forma, optou-se por adotar o modelo obtido pelo procedimento Stepwise como modelo final.
+
+```{r, include=FALSE}
+mod3 <- lm( quality ~ fixed.acidity + volatile.acidity + residual.sugar + chlorides +
+            free.sulfur.dioxide + total.sulfur.dioxide + pH + sulphates +
+            alcohol + type, data = dados)
+
+mod4 <- lm(quality ~ fixed.acidity + volatile.acidity + residual.sugar + chlorides +
+             free.sulfur.dioxide + total.sulfur.dioxide + I(total.sulfur.dioxide^2) + 
+             pH + sulphates + alcohol + type, data = dados)
+
+mod2 <- lm(quality ~ fixed.acidity + volatile.acidity + residual.sugar + chlorides +
+           free.sulfur.dioxide + total.sulfur.dioxide + density + pH + sulphates + 
+           alcohol + type, data = dados)
+
+mod_backward <- step(mod_cheio, direction = "backward", trace = FALSE)
+
+mod_forward <- step(mod_nulo, scope = list(lower = mod_nulo, upper = mod_cheio), 
+                    direction = "forward", trace = FALSE)
+```
+
+```{r tab-selecao}
+tabela_selecao <- data.frame(
+  Metodo = c(
+    "Backward Elimination",
+    "Forward Selection",
+    "Stepwise Regression"
+  ),
+  Variaveis_Selecionadas = c(
+    9, 9, 9
+  ),
+  `R² Ajustado` = c(
+    round(summary(mod_backward)$adj.r.squared, 3),
+    round(summary(mod_forward)$adj.r.squared, 3),
+    round(summary(mod_stepwise)$adj.r.squared, 3)
+  )
+)
+
+kable(
+  tabela_selecao,
+  booktabs = TRUE,
+  col.names = c(
+    "Método",
+    "Nº de Variáveis",
+    "R² Ajustado"
+  ),
+  caption = "Resumo dos métodos automáticos de seleção de variáveis."
+) %>%
+  kableExtra::kable_styling(
+    latex_options = "HOLD_position",
+    font_size = 10
+  )
+```
+
+## Modelos alternativos avaliados {-}
+
+Durante o processo de construção do modelo final, foram avaliadas diferentes especificações com o objetivo de investigar possíveis problemas de multicolinearidade e relações não lineares entre as variáveis explicativas e a qualidade dos vinhos.
+
+### Impacto da multicolinearidade {-}
+
+Inicialmente foi ajustado um modelo contendo todas as variáveis físico-químicas, exceto o ácido cítrico, que não apresentou significância estatística. Apesar de apresentar o maior coeficiente de determinação ajustado dentre os modelos avaliados (`r round(summary(mod2)$adj.r.squared,3)`), a análise dos fatores de inflação da variância (VIF) indicou a presença de multicolinearidade relevante.
+
+Em particular, a variável densidade apresentou VIF igual a `r round(car::vif(mod2)["density"],2)`, valor consideravelmente superior aos limites usualmente recomendados na literatura. Esse resultado sugere forte associação linear entre a densidade e outras variáveis explicativas, especialmente açúcar residual e teor alcoólico.
+
+Com o objetivo de reduzir esse problema, foi ajustado um segundo modelo sem a variável densidade. Embora tenha ocorrido uma pequena redução no coeficiente de determinação ajustado (`r round(summary(mod3)$adj.r.squared,3)`), observou-se uma redução substancial dos valores de VIF, tornando as estimativas dos coeficientes mais estáveis e interpretáveis. Conforme apresentado na Tabela \@ref(tab:tab-modelos), esse modelo apresentou desempenho semelhante aos demais modelos avaliados, com AIC igual a `r round(AIC(mod3),2)`.
+
+```{r tab-modelos}
+comparacao_modelos <- data.frame(
+  Modelo = c(
+    "Com densidade",
+    "Sem densidade",
+    "Termo quadrático",
+    "Modelo final"
+  ),
+  R2_Ajustado = c(
+    round(summary(mod2)$adj.r.squared,3),
+    round(summary(mod3)$adj.r.squared,3),
+    round(summary(mod4)$adj.r.squared,3),
+    round(summary(mod_stepwise)$adj.r.squared,3)
+  ),
+  AIC = round(c(
+    AIC(mod2),
+    AIC(mod3),
+    AIC(mod4),
+    AIC(mod_stepwise)
+  ),1)
+)
+
+kable(
+  comparacao_modelos,
+  booktabs = TRUE,
+  col.names = c(
+    "Modelo",
+    "R² Ajustado",
+    "AIC"
+  ),
+  caption = "Comparação entre os principais modelos considerados."
+) %>%
+  kableExtra::kable_styling(
+    latex_options = "HOLD_position",
+    font_size = 10
+  )
+```
+
+```{r}
+
+# Criando o Modelo 6: Base Stepwise + Termo Quadrático do Enxofre Total
+modelo_parabolico <- lm(
+  quality ~ alcohol + volatile.acidity + sulphates + residual.sugar + 
+            type + free.sulfur.dioxide + total.sulfur.dioxide + 
+            I(total.sulfur.dioxide^2) + chlorides + pH, 
+  data = dados_embaralhados
+)
+
+```
+
+```{r, echo=FALSE}
+r2_step <- summary(mod_stepwise)$r.squared
+r2_para <- summary(modelo_parabolico)$r.squared
+
+r2_adj_step <- summary(mod_stepwise)$adj.r.squared
+r2_adj_para <- summary(modelo_parabolico)$adj.r.squared
+
+# Diferença absoluta no R² Ajustado (em pontos percentuais)
+diferenca_r2 <- (r2_adj_para - r2_adj_step) * 100
+
+# Extraindo o p-valor do termo quadrático
+p_valor_quad <- summary(modelo_parabolico)$coefficients["I(total.sulfur.dioxide^2)", "Pr(>|t|)"]
+```
+
+### Avaliação de efeitos não lineares{-}
+
+A análise dos gráficos de resíduos parciais indicou a possibilidade de desvios da hipótese de linearidade em algumas variáveis explicativas. Como o procedimento Stepwise tradicional é restrito a termos lineares de primeira ordem e com o objetivo de investigar esse aspecto, foi ajustado um modelo alternativo contendo um termo quadrático para a variável dióxido de enxofre total, `I(total.sulfur.dioxide^2)`, denominado *modelo parabólico*. A Figura \@ref(fig:fig-linear-param), apresentada na [Subseção de Linearidade dos Parâmetros](#linearidade), mostra os gráficos de resíduos parciais para todas as variáveis do modelo. Para destacar esse comportamento, a Figura \@ref(fig:fig-cr-so2) apresenta apenas o gráfico correspondente ao dióxido de enxofre total.
+
+O objetivo foi investigar se a inclusão desse termo seria capaz de capturar possíveis desvios da linearidade e produzir melhorias no ajuste do modelo.
+
+```{r fig-cr-so2, fig.pos='H', echo=FALSE,fig.cap="Gráfico de resíduos parciais para a variável dióxido de enxofre total.", fig.align='center'}
+
+library(car)
+
+crPlot(
+  mod_stepwise,
+  variable = "total.sulfur.dioxide",
+  main = "Resíduo Parcial vs Dióxido de Enxofre Total",
+  xlab = "Dióxido de Enxofre Total",
+  ylab = "Resíduo Parcial"
+)
+```
+
+Os resultados indicaram significância estatística tanto para o termo linear quanto para o termo quadrático. Em particular, o termo quadrático apresentou coeficiente igual a $`r sprintf("%.7f", coef(modelo_parabolico)["I(total.sulfur.dioxide^2)"])`$ e p-valor `r sprintf("%.4f", summary(modelo_parabolico)$coefficients["I(total.sulfur.dioxide^2)", "Pr(>|t|)"])`, isto é, p-valor < 0,0001, fornecendo fortes evidências para rejeitar a hipótese nula do parâmetro. O coeficiente negativo associado ao termo quadrático indica uma relação com concavidade voltada para baixo, sugerindo a existência de um ponto ótimo de sulfitação, em que valores abaixo ou acima desse limite estão associados a menores notas de qualidade.
+
+Em termos de ajuste, o modelo parabólico apresentou coeficiente de determinação ajustado igual a `r round(summary(mod4)$adj.r.squared,3)` e AIC igual a `r round(AIC(mod4),2)`, valores muito próximos aos observados nos demais modelos avaliados. Comparado ao modelo Stepwise original, o $R^2$ ajustado evoluiu de `r round(r2_adj_step, 4)` para `r round(r2_adj_para, 4)`, representando um ganho de `r round(diferenca_r2, 2)` pontos percentuais na explicação da variabilidade da qualidade.
+
+Como consequência da inclusão do termo quadrático, observou-se também uma alteração na significância da variável `pH`, cujo p-valor passou para `0.0578`, tornando-a marginalmente significativa ao nível de 5%.
+Apesar da melhora observada no ajuste e da correção da possível violação do pressuposto de linearidade, o ganho obtido foi relativamente pequeno. Assim, considerando o princípio da parcimônia e a semelhança entre as métricas de desempenho dos modelos avaliados, optou-se por manter o modelo obtido pelo procedimento Stepwise como modelo final, utilizando o modelo parabólico apenas para fins de comparação.
+
+Em síntese, os modelos alternativos permitiram investigar diferentes aspectos do problema, incluindo a presença de multicolinearidade e possíveis relações não lineares. A comparação entre ajuste, interpretabilidade e parcimônia levou à escolha do modelo Stepwise, que apresentou desempenho competitivo e estrutura mais simples para interpretação dos efeitos das variáveis físico-químicas sobre a qualidade dos vinhos.
+
+```{r tab-vif}
+vif_comp <- data.frame(
+  `Variável` = c(
+    "Densidade (Modelo com densidade)",
+    "Álcool (Modelo com densidade)",
+    "Açúcar residual (Modelo com densidade)"
+  ),
+  VIF = round(c(
+    car::vif(mod2)["density"],
+    car::vif(mod2)["alcohol"],
+    car::vif(mod2)["residual.sugar"]
+  ),2)
+)
+
+kable(
+  vif_comp,
+  booktabs = TRUE,
+  caption = "Exemplos de fatores de inflação da variância no modelo com densidade."
+) %>%
+  kableExtra::kable_styling(
+    latex_options = "HOLD_position",
+    font_size = 10
+  )
+```
+
+### Modelo com interações 2 a 2 {-}
+
+```{r, include=FALSE}
+mod_nulo <- lm(quality ~ 1, data = dados_embaralhados)
+mod_cheio_interacao <- lm(quality ~ (fixed.acidity + volatile.acidity + residual.sugar + 
+                           chlorides + free.sulfur.dioxide + total.sulfur.dioxide + 
+                           pH + sulphates + alcohol + type)^2, data = dados_embaralhados)
+
+mod_stepwise_interacao <- step(mod_nulo, 
+                                scope = list(lower = mod_nulo, 
+                                             upper = mod_cheio_interacao), 
+                                direction = "both", 
+                                trace = FALSE)
+
+summary(mod_stepwise_interacao)
+```
+
+Como extensão exploratória, foi aplicado o procedimento Stepwise considerando, além dos efeitos principais, todas as interações de dois a dois entre as 10 variáveis do modelo completo, totalizando 45 interações candidatas. O modelo selecionado apresentou coeficiente de determinação ajustado igual a `r round(summary(mod_stepwise_interacao)$adj.r.squared, 3)`, o maior valor entre todos os modelos avaliados. No total, `r length(coef(mod_stepwise_interacao)) - 1` termos foram selecionados, sendo `r sum(grepl(":", names(coef(mod_stepwise_interacao))))` deles termos de interação.
+
+Entre as interações identificadas, destacam-se aquelas envolvendo a variável `type`, que apresentou interação significativa com `volatile.acidity` (p-valor $< 0{,}001$), `free.sulfur.dioxide` (p-valor $< 0{,}001$), `pH` (p-valor $< 0{,}001$), `total.sulfur.dioxide` e `alcohol`, indicando que o efeito dessas variáveis sobre a qualidade não é o mesmo para vinhos tintos e brancos.
+
+Apesar do melhor ajuste, optou-se por não adotar esse modelo como modelo final. Com `r length(coef(mod_stepwise_interacao)) - 1` termos a serem estimados, a interpretação dos coeficientes torna-se muito complexa, uma vez que os efeitos principais deixam de ter sentido isolado na presença de interações.
+
+Além disso, considerando o tamanho da amostra e a quantidade de parâmetros, há risco de overfitting, ou seja, o modelo poderia passar a capturar ruídos específicos dos dados em vez de padrões reais. Pelo princípio da parcimônia, manteve-se o modelo Stepwise sem interações como modelo final.
+
+## Diagnóstico do Modelo e Análise de Resíduos {-}
+
+<!-- aqui devem estar resultados que apoiam suas análises (modelos tentados, código de seleção de modelo/etc...), obrigatoriamente, esta seção deve conter o diagnóstico do modelo: gráficos e testes relevantes. -->
+
+### Teste de Shapiro-Wilk e Limitação Amostral {-}
+
+```{r, include=FALSE}
+
+# Aplicando o Shapiro-Wilk em uma amostra de 5000 resíduos no modelo
+set.seed(123)
+teste_shapiro <- shapiro.test(sample(residuals(mod_stepwise), 5000))
+teste_shapiro
+```
+
+Para validar formalmente a distribuição dos erros, foi aplicado o teste de **Shapiro-Wilk** criado por @shapiro1965_oficial. Contudo, o R tem um limite estrito de $5000$ observações, conforme implementado por @royston1995_adaptaco_shapiro. Para contornar essa limitação sem perder o rigor, extraímos uma amostragem aleatória de exatamente $5000$ resíduos.
+
+O teste indicou uma estatística $W =$ `r round(teste_shapiro$statistic, 5)` e um p-valor de aproximadamente `r round(teste_shapiro$p.value, 4)`. Como o p-valor é menor do que o nível de significância adotado de $5\%$ ($\alpha = 0,05$), rejeita-se a hipótese nula de normalidade. Entretanto, como em grandes amostras, o teste de Shapiro-Wilk torna-se excessivamente sensível a desvios milimétricos, o valor de $W$ próximo de $1$ serve como evidência observada de que os resíduos possuem uma distribuição muito próxima da normal, reduzindo possíveis distorções nas inferências do modelo.
+
+### Normalidade dos Resíduos {-}
+
+Por meio da Figura \@ref(fig:fig-res) foi realizada a análise visual da distribuição dos erros. O histograma revela um comportamento altamente simétrico e centrado no zero, desenhando a clássica curva de sino. No Gráfico de Q-Q Plot com Banda, observa-se que os pontos tanto no inicío do gráfico e tanto no final distoam um pouco da reta central. Esse padrão é uma consequência direta da variável resposta `quality`, a qual assume valores estritamente inteiros, isto é, se trata de uma variável discreta.
+
+```{r fig-res, fig.pos='H', fig.cap = "Histograma e Q-Q Plot dos Resíduos", fig.align='center'}
+# GRÁFICOS DE DIAGNÓSTICO DE NORMALIDADE
+
+par(mfrow = c(1, 2)) 
+
+# Histograma dos resíduos
+hist(residuals(mod_stepwise), main="Histograma dos Resíduos", 
+     xlab="Resíduos", col="lightblue", breaks=30, probability = TRUE)
+lines(density(residuals(mod_stepwise)), col="darkblue", lwd=2) # Curva de densidade real
+
+# Q-Q Plot com Banda de Confiança
+car::qqPlot(mod_stepwise, distribution = "norm", simulate = TRUE, 
+            main = "Q-Q Plot com Banda (95%)",
+            xlab = "Quantis Teóricos", ylab = "Resíduos do Modelo", 
+            id = FALSE, col.lines = "red", grid = FALSE)
+
+par(mfrow = c(1, 1))
+```
+
+```{r, include= FALSE}
+teste_jb <- tseries::jarque.bera.test(residuals(mod_stepwise))
+teste_jb
+```
+
+Além disso, foi utilizado o teste de **Jarque-Bera**, criado por @teste_dickey_jarque, para testar a normalidade em amostras maiores. Aplicado ao modelo cheio confirmou a rejeição da normalidade ($X^2 =$ `r round(teste_jb$statistic, 2)`), p-valor de aproximadamente `r round(teste_jb$p.value, 4)`. No entanto, ao confrontar os resíduos com a banda de confiança, verifica-se que a maioria das observações encontra-se contida dentro dos limites críticos superiores e inferiores estabelecidos. Estatisticamente, essa aderência a banda de confiança valida o uso do estimador de Mínimos Quadrados Ordinários (MQO) para este conjunto de dados. Além disso, o Teorema Central do Limite nos garante segurança para realizar os testes t e F da regressão.
+
+### Homocedasticidade {-}
+
+```{r, include=FALSE}
+# HOMOCEDASTICIDADE (Variância Constante dos Resíduos)
+
+# Teste Estatístico de Breusch-Pagan (teste de Homocedasticidade)
+teste_bp <- lmtest::bptest(mod_stepwise)
+teste_bp
+```
+
+O pressuposto de homocedasticidade exige que a variância dos resíduos seja constante ao longo de todos os valores previstos pelo modelo. Para testar essa condição, aplicou-se o teste estatístico de **Breusch-Pagan**, criado por @teste_breusch_durbin, que apresentou uma estatística $BP =$ **`` `r round(teste_bp$statistic, 3)` ``** e um p-valor de aproximadamente  **`r round(teste_bp$p.value, 4)`**. Sendo o p-valor inferior ao nível de significância de $5\%$, rejeita-se a hipótese nula ($H_0$), constatando a presença de heterocedasticidade nos erros de acordo com o teste.
+
+```{r,  include=FALSE}
+# HOMOCEDASTICIDADE (Variância Constante dos Resíduos)
+
+# Teste Estatístico de Breusch-Pagan (teste de Homocedasticidade)
+teste_bp <- lmtest::bptest(mod_stepwise)
+teste_bp
+```
+
+Ao avaliarmos a Figura \@ref(fig:fig-res-ajust), é evidente a presença de listras diagonais paralelas. Em um cenário ideal, com dados contínuos, isso poderia indicar violação dos pressupostos do modelo. Porém, essas listras são apenas a confirmação de que, ao se aplicar um modelo de regressão linear múltipla tradicional sobre uma variável discreta, tem-se a presença das listras diagonais devido a limitação do modelo em não se adequar a esse tipo de variável. Mesmo com o teste de **Breusch-Pagan** afirmando a heterocedasticidade, isso não invalida o Stepwise, já que a variância se altera devido a restrição das notas inteiras, fazendo com que o erro 'aperte' nas notas extremas e se 'alargue' nas notas centrais. Assim, é assumido que a heterocedasticidade encontrada é um reflexo  da escala de mensuração da qualidade do vinho.
+
+```{r fig-res-ajust, fig.pos='H', fig.cap = "Resíduos vs Valores Ajustados", fig.align='center'}
+# Análise Gráfica
+plot(mod_stepwise, which = 1)
+```
+
+### Linearidade dos Parâmetros {- #linearidade}
+
+A avaliação da linearidade dos parâmetros, entre a relação química e a nota do vinho, foi realizada individualmente por meio da Figura \@ref(fig:fig-linear-param). Esses gráficos contrapõem a reta ajustada pelo modelo (linha sólida) com uma curva suavizada que mapeia a tendência real observada nos dados (linha tracejada).
+
+```{r fig-linear-param, fig.pos='H', fig.cap = "Resíduos vs Valores Ajustados", fig.align='center'}
+# -------------------------------------------------------------------------
+# LINEARIDADE DOS PARÂMETROS
+# -------------------------------------------------------------------------
+
+# Análise por Variável (Gráficos de Resíduos Parciais):
+car::crPlots(mod_stepwise)
+```
+
+A análise visual revela que a grande maioria das variáveis explicativas selecionadas pelo Stepwise, como teor alcoólico (`alcohol`), acidez volátil (`volatile.acidity`), sulfatos (`sulphates`), açúcares residuais (`residual.sugar`), cloretos (`chlorides`) e o `pH`, exibe uma aderência linear rigorosa, com as linhas teórica e observada praticamente sobrepostas. 
+
+A única exceção notável ocorre na variável dióxido de enxofre livre (`free.sulfur.dioxide`), cuja linha suavizada assume um formato sutilmente curvado. 
+
+Ao analisar os gráficos de resíduos parciais para o pressuposto de linearidade, a divergência mais evidente entre a reta estimada do modelo e a tendência real dos dados (linha suavizada) ocorre na variável dióxido de enxofre livre (free.sulfur.dioxide). Visualmente, sua linha assume um comportamento parabólico, indicando um claro ponto de saturação onde o excesso do conservante ativo penaliza a qualidade sensorial do vinho. Como o dióxido de enxofre livre e o dióxido de enxofre total (`total.sulfur.dioxide`) são componentes quimicamente dependentes e altamente correlacionados, essa não-linearidade reverbera em todo o complexo de sulfitação do modelo. Diante dessa limitação do algoritmo Stepwise linear tradicional, é possível aplicar uma "correção" na variável `total.sulfur.dioxide` para uma melhora no modelo, porém como os aumentos não foram tão significativos, optou-se por manter o modelo Stepwise. 
+
+### Independência dos Resíduos (Autocorrelação) {-}
+
+O pressuposto de independência dos resíduos exige que os erros de observações adjacentes não apresentem correlação entre si, garantindo a natureza aleatória das falhas de previsão. Para diagnosticar a presença de autocorrelação serial de primeira ordem, utilizou-se o teste de **Durbin-Watson**, criado por @teste_breusch_durbin, em dois cenários distintos de organização amostral.
+
+```{r,  include=FALSE}
+# -------------------------------------------------------------------------
+# INDEPENDÊNCIA DOS RESÍDUOS - Sem estar embaralhado
+# -------------------------------------------------------------------------
+
+#Releitura dos dados
+dados <- read.csv(url)
+dados$type <- as.factor(dados$type) # transformar tipo em fator
+#Reorganização do modelo sem estar embaralhado
+mod_nulo <- lm(quality ~ 1, data = dados)
+mod_cheio <- lm(quality ~ fixed.acidity + volatile.acidity + residual.sugar + chlorides +
+                  free.sulfur.dioxide + total.sulfur.dioxide + pH + sulphates +
+                  alcohol + type, data = dados)
+modelo_não_embaralhado <- step(mod_nulo, scope = list(lower = mod_nulo, upper = mod_cheio), 
+                     direction = "both", trace = FALSE)
+
+# Teste de Durbin-Watson
+# H0: Ausência de autocorrelação
+lmtest::dwtest(modelo_não_embaralhado)
+teste_dw_original <- lmtest::dwtest(modelo_não_embaralhado)
+```
+
+```{r,  include=FALSE}
+# -------------------------------------------------------------------------
+# INDEPENDÊNCIA DOS RESÍDUOS - Reembaralhando os dados
+# -------------------------------------------------------------------------
+
+# Teste de Durbin-Watson
+# H0: Ausência de autocorrelação
+lmtest::dwtest(mod_stepwise)
+teste_dw_embaralhado <- lmtest::dwtest(mod_stepwise)
+```
+
+Inicialmente, ao rodar o modelo com o banco de dados na ordem original, o teste de **Durbin-Watson** acusou um $DW =$ `r round(teste_dw_original$statistic, 4)` e um p-valor de aproximadamente `r round(teste_dw_original$p.value, 4)`. Sendo o p-valor menor que $0.05$, rejeita-se a hipótese nula ($H_0$), isto é, rejeita-se a independência dos erros. No entanto, esse acontecimento se deve a maneira que os vinhos vieram agrupados, sendo de forma sistemática por tipo (todos os tintos juntos e depois todos os brancos).
+Essa falta de aleatoriedade nas linhas fazia com que o erro de um vinho dependesse do erro do vinho anterior. Para corrigir isso, foi-se aplicado um algoritmo de embaralhamento aleatório nas linhas. O resultado foi imediato e definitivo: a estatística $DW$ saltou para  `r round(teste_dw_embaralhado$statistic, 4)` (muito próxima do valor ideal de $2$) e o p-valor foi para aproximadamente `r round(teste_dw_embaralhado$p.value, 4)`. 
+
+Dado que a estatística se fixou próxima de $2$ e o p-valor superou o limite crítico de $0.05$, assim há evidências estatisticamente significativas para desconsiderar a autocorrelação e que existe isolação do efeito químico de cada observação.
+
+### Observações Influentes e Outliers {-}
+
+A identificação de dados discrepantes e observações com potencial de distorcer os coeficientes estimados foi realizada por meio da Distância de Cook, presente na Figura \@ref(fig:fig-cook), do gráfico de Resíduos versus Alavancagem, presente na Figura \@ref(fig:fig-leverage), (*Leverage*) e da função `influence.measures()`.
+
+```{r fig-cook, fig.pos='H', echo=FALSE, message=FALSE, warning=FALSE, fig.cap="Distância de Cook para identificação de observações influentes.", fig.align='center'}
+plot(mod_stepwise, which = 4)
+```
+
+```{r fig-leverage, fig.pos='H', fig.cap="Resíduos versus alavancagem para identificação de observações influentes.", fig.align='center'}
+plot(mod_stepwise, which = 5)
+```
+
+```{r, include=FALSE}
+# Diagnóstico Numérico Completo: Cook, Hat, DFFITS e DFBETAS
+resumo_influencia <- influence.measures(mod_stepwise)
+#as.data.frame(resumo_influencia$infmat)[1:10, ]
+```
+
+Ao inspecionar o diagnóstico de observações influentes, o comando `summary(influence.measures)` identificou centenas de vinhos potencialmente críticos. Entretanto, esse resultado não indica necessariamente um problema do modelo, mas reflete o grande volume de dados disponível ($n > 6000$). Como os limites críticos de indicadores como o Hat value ($2p/n$) e o DFFITS ($2\sqrt{p/n}$) são inversamente proporcionais ao tamanho amostral, os pontos de corte tornam-se extremamente rigorosos, fazendo com que pequenas variações químicas sejam classificadas como influentes. Ademais, a diversidade química dos processos de fermentação e conservação de diferentes safras favorece a ocorrência natural de outliers multivariados.
+
+Para evitar que a análise se perdesse em meio ao grande número de observações sinalizadas, optou-se por concentrar a investigação nos três vinhos destacados visualmente nas Figuras \@ref(fig:fig-cook) e \@ref(fig:fig-leverage): As observações 152, 3531 e 6345.
+
+```{r tab-outliers2}
+# TABELA COM OS 3 VINHOS DE MAIOR INFLUÊNCIA + MÉDIA GERAL
+
+# Seleção das variáveis presentes no modelo final (Trocado Acidez Volátil por Quality)
+colunas_selecionadas <- c(
+  "type",
+  "quality",          # Mudou para cá
+  "residual.sugar",
+  "chlorides",
+  "free.sulfur.dioxide",
+  "total.sulfur.dioxide",
+  "pH",
+  "sulphates",
+  "alcohol"
+)
+
+dados_outliers <- dados[c(152, 3531, 6345), colunas_selecionadas]
+
+dados_outliers$type <- as.character(dados_outliers$type)
+
+# Médias gerais (continua calculando para as colunas numéricas selecionadas)
+medias_gerais <- colMeans(dados[, colunas_selecionadas[-1]], na.rm = TRUE)
+
+linha_media <- data.frame(
+  type = "-", 
+  t(medias_gerais),
+  stringsAsFactors = FALSE
+)
+colnames(linha_media) <- colunas_selecionadas
+rownames(linha_media) <- "Média Geral"
+
+dados_tabela_final <- rbind(dados_outliers, linha_media)
+
+# Nomes das colunas atualizados refletindo a troca
+colnames(dados_tabela_final) <- c(
+  "Tipo",
+  "Qualidade",        # Substituiu "Acidez Volátil"
+  "Açúcar Res.",
+  "Cloretos",
+  "SO2 Livre",
+  "SO2 Total",
+  "pH",
+  "Sulfatos",
+  "Álcool"
+)
+
+# Gerar a tabela formatada
+knitr::kable(
+  dados_tabela_final,
+  caption = "Perfil detalhado dos três vinhos de maior impacto e influência comparados à média geral da base, destacando suas respectivas notas de qualidade.",
+  align = "c",
+  digits = 2,
+  row.names = TRUE
+) %>%
+  kableExtra::kable_styling(
+    latex_options = "HOLD_position",
+    font_size = 10
+  )
+```
+
+O perfil químico desses vinhos é apresentado na Tabela \@ref(tab:tab-outliers2), permitindo compreender por que essas observações se destacam dos demais registros da amostra.
+
+O vinho 152 corresponde a um vinho tinto que apresenta altas concentrações de cloretos ($0,610$) e sulfatos ($2,00$).
+
+O vinho 3531 corresponde a um vinho branco com uma concentração extremamente elevada de dióxido de enxofre livre e nota mínima de qualidade. Em razão dessa composição química bastante desequilibrada, trata-se de uma observação difícil de ser adequadamente prevista pelo modelo.
+
+O vinho 6345 também corresponde a um vinho branco e apresenta uma concentração ainda maior de dióxido de enxofre livre ($289,0$), excedendo limites comerciais usuais. Essa observação destaca-se por ser o ponto mais isolado nos gráficos de alavancagem e Distância de Cook, gerando simultaneamente resíduos elevados e alta influência. Apesar disso, sua presença pode ser justificada pela existência de situações específicas em que esse tipo de produto é comercializado mediante autorização regulatória.
+
+Esses vinhos foram mantidos na base de dados para que o modelo Stepwise linear fosse avaliado em condições próximas às observadas na prática da indústria vinícola, incluindo eventuais falhas de produção e composições químicas atípicas.
+
+### Tranformação de Box-Cox {-}
+
+O  modelo foi submetido a técnica estatística transformação de **Box-Cox**, criado por @metodo_box_cox. O objetivo era descobrir se a variável resposta (`quality`) precisava passar por alguma transformação matemática, como logaritmo ou raiz quadrada, para corrigir os desvios de normalidade e heterocedasticidade observados anteriormente.
+
+```{r fig-boxcox, fig.pos='H', echo=FALSE, message=FALSE, warning=FALSE, fig.cap= "Log-verossimilhança para o parâmetro de transformação de Box-Cox.", fig.align='center'}
+
+library(MASS)
+
+# Box-Cox e gráfico
+bc <- boxcox(
+  mod_stepwise,
+  lambda = seq(-2, 2, 0.1)
+)
+
+# Lambda que maximiza a log-verossimilhança
+melhor_lambda <- bc$x[which.max(bc$y)]
+```
+
+De acordo com a Figura \@ref(fig:fig-boxcox), o algoritmo estimou o valor de $\lambda$ máximo em `` `r round(melhor_lambda, 2)` ``, próximo a $1$. Na teoria do Box-Cox, quando o pico da curva e o seu intervalo de confiança contêm o valor $1$, isso significa que nenhuma transformação é necessária. De certo modo, já temos uma versão bastante funcional, logo a escala linear original de notas de 0 a 10 já é uma escala que explica a qualidade do vinho.
+
+
+\newpage
+
+# Bibliografia {-}
+
+<!-- não coloque nada aqui, será feito automaticamente se vc usar .bib e @ para citar referencias no texto, conforme ilustrado no template de exemplo-->
+
+
+<!-- para construir o .bib, use o cite https://www.doi2bib.org/, caso seja uma referência com DOI --> 
+
+<!-- ao utilizar cada método, cite o autor e também referencie o pacote utilizado, no R, pegue o .bib usando citation("nomedopacote") -->
+
