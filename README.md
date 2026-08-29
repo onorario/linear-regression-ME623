@@ -24,21 +24,21 @@ Este repositório contém o projeto de modelagem estatística desenvolvido em **
 
 ---
 
-## 🧪 Como a Química Explica a Qualidade? (Visão Geral Didática)
+## 🧪 Como a Química Explica a Qualidade? 
 
 Em vez de depender apenas do paladar subjetivo de um sommelier, a modelagem estatística busca entender **quais elementos no laboratório químico determinam se um vinho será bem avaliado**:
 
-### 1. 📈 Os Principais Impulsionadores (Efeito Positivo)
-* **Teor Alcoólico (`alcohol`):** Foi a variável mais relevante do modelo ($\beta = +0.334$). Vinhos mais alcoólicos tendem a ser mais encorpados e mais bem avaliados sensorialmente.
-* **Sulfatos (`sulphates`):** Atuam como conservantes e antioxidantes benéficos ($\beta = +0.575$), contribuindo positivamente para a conservação e aroma.
+### 1. 📈 Os Principais Impulsionadores 
+* **Teor Alcoólico (`alcohol`):** Foi a variável mais relevante do modelo. Vinhos mais alcoólicos tendem a ser mais encorpados e mais bem avaliados sensorialmente.
+* **Sulfatos (`sulphates`):** Atuam como conservantes e antioxidantes benéficos, contribuindo positivamente para a conservação e aroma.
 * **Açúcar Residual e pH:** Apresentaram impactos positivos moderados na percepção de equilíbrio da bebida.
 
-### 2. 📉 Os Principais Detratores (Efeito Negativo)
-* **Acidez Volátil (`volatile.acidity`):** Forte redutor de nota ($\beta = -1.520$). Representa ácidos indesejados (como o ácido acético/vinagre), indicando falhas no controle de fermentação ou oxidação.
-* **Cloretos (`chlorides`):** Concentrações elevadas de salinidade ($\beta = -1.066$) prejudicam a experiência gustativa.
-* **Dióxido de Enxofre Total (`total.sulfur.dioxide`):** O excesso gera odores pungentes e sensação metálica.
+### 2. 📉 Os Principais Detratores
+* **Acidez Volátil (`volatile.acidity`):** Forte redutor de nota. Representa ácidos indesejados (como o ácido acético/vinagre), indicando falhas no controle de fermentação ou oxidação.
+* **Cloretos (`chlorides`):** Concentrações elevadas de sal prejudicam a experiência gustativa.
+* **Dióxido de Enxofre Total (`total.sulfur.dioxide`):** O excesso gera odores intensos demais e gosto metálico.
 
-### 3. ⚖️ O Ponto de Equilíbrio (Não-Linearidade)
+### 3. ⚖️ O Ponto de Equilíbrio dos Vinhos (Não-Linearidade)
 A análise de resíduos parciais revelou que conservantes como o dióxido de enxofre possuem um **ponto de saturação** (comportamento parabólico): a dosagem ideal protege a bebida, mas o excesso penaliza a avaliação final.
 
 ---
