@@ -10,7 +10,7 @@ Este repositório contém o projeto de modelagem estatística desenvolvido em **
 > **Contexto:** Projeto desenvolvido para a disciplina **ME623 - Análise de Regressão Linear** (IMECC / UNICAMP).
 
 ---
-## ✒️ Integrantes do Projeto
+## 👥 Integrantes do Projeto
 - Gustavo Coimbra de Souza Teixeira  
 - Julia Folgueral 
 - Luiz Fernando de Oliveira Pereira  
