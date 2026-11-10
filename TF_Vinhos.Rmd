@@ -90,7 +90,7 @@ Na Seção \@ref(sec-banco) é apresentado o conjunto de dados utilizado no estu
 
 ```{r, include=FALSE}
 # código para carregar seu banco de dados 
-# caso sua base de dados seja grande e exceda os limites do moodle, inclua aqui um código que baixe os dados a partir de um link/google drive, certifique-se que qualquer pessoa tenha acesso/permissao para baixar dados
+
 
 url <- "https://raw.githubusercontent.com/juliafolgueral/me623-reg-trabfinal/main/dados_vinho.csv"
 
